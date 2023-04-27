@@ -7,61 +7,37 @@ provider "azurerm" {
   subscription_id = "f372e468-bc73-46a8-bb79-9f0517b9d11a"
 }
 
-resource "azurerm_resource_group" "RG" {
-  name     = "ASHA"
-  location = "East us"
+resource "azurerm_resource_group" "rg" {
+  name     = "rg1"
+  location = "West Europe"
 }
-resource "azurerm_virtual_network" "vnet" {
-  name                = "Ashs-vnet"
-  location            = azurerm_resource_group.RG.location
-  resource_group_name = azurerm_resource_group.RG.name
+
+resource "azurerm_virtual_network" "example" {
+  name                = "Balaji-vnet"
   address_space       = ["10.0.0.0/16"]
-}
-resource "azurerm_subnet" "subnet" {
-  name                 = "Asha-subnet"
-  resource_group_name  = azurerm_resource_group.RG.name
-  virtual_network_name = azurerm_virtual_network.vnet.name
-  address_prefixes     = ["10.0.1.0/24"]
-}
-resource "azurerm_public_ip" "publicip" {
-  name                = "Asha-publicip"
-  resource_group_name = azurerm_resource_group.RG.name
-  location            = azurerm_resource_group.RG.location
-  allocation_method   = "Static"
+  location            = azurerm_resource_group.rg.location
+  resource_group_name = azurerm_resource_group.rg.name
 }
 
-resource "azurerm_network_interface" "nic" {
-  name                = "Asha-nic"
-  location            = azurerm_resource_group.RG.location
-  resource_group_name = azurerm_resource_group.RG.name
-
-  ip_configuration {
-    name                          = "internal"
-    subnet_id                     = azurerm_subnet.subnet.id
-    private_ip_address_allocation = "Dynamic"
-  }
+resource "azurerm_subnet" "example" {
+  name                 = "Balaji-subnet"
+  resource_group_name  = azurerm_resource_group.rg.name
+  virtual_network_name = azurerm_virtual_network.example.name
+  address_prefixes     = ["10yea.0.2.0/24"]
+  service_endpoints    = ["Microsoft.Sql", "Microsoft.Storage"]
 }
-resource "azurerm_windows_virtual_machine" "example" {
-  name                = "Asha-machine"
-  resource_group_name = azurerm_resource_group.RG.name
-  location            = azurerm_resource_group.RG.location
-  size                = "Standard_F2"
-  admin_username      = "adminuser"
-  admin_password      = "adminuser@123"
-  network_interface_ids = [
-    azurerm_network_interface.nic.id,
-  ]
 
-  os_disk {
-    caching              = "ReadWrite"
-    storage_account_type = "Standard_LRS"
+resource "azurerm_storage_account" "example" {
+  name                = "balajistorage"
+  resource_group_name = azurerm_resource_group.rg.name
 
-  }
+  location                 = azurerm_resource_group.rg.location
+  account_tier             = "Standard"
+  account_replication_type = "LRS"
 
-  source_image_reference {
-    publisher = "MicrosoftWindowsServer"
-    offer     = "WindowsServer"
-    sku       = "2016-Datacenter"
-    version   = "latest"
+  network_rules {
+    default_action             = "Deny"
+    ip_rules                   = ["100.0.0.1"]
+    virtual_network_subnet_ids = [azurerm_subnet.example.id]
   }
 }
